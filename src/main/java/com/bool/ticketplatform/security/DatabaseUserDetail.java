@@ -25,7 +25,7 @@ public class DatabaseUserDetail implements UserDetails {
     
     // costruttore
     public DatabaseUserDetail(User user) {
-        
+
         this.username = user.getUsername();
         this.password = user.getPassword();
 
@@ -33,10 +33,11 @@ public class DatabaseUserDetail implements UserDetails {
 
         for (Role role : user.getRoles()) {
             SimpleGrantedAuthority sga = new SimpleGrantedAuthority(role.getRoleName());
-            this.authorities.add(sga);            
+            this.authorities.add(sga);
         }
     }
 
+    // getters
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return authorities;

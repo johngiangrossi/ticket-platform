@@ -1,5 +1,7 @@
 package com.bool.ticketplatform.model;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import jakarta.persistence.Column;
@@ -42,7 +44,7 @@ public class User {
     private boolean available;
 
 
-    
+    // fields con relazioni
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
         name = "user_role",
@@ -57,6 +59,7 @@ public class User {
     @OneToMany(mappedBy = "user")
     private List<Note> notes;
 
+    
 
     // getters
     public Integer getId() {
@@ -80,23 +83,19 @@ public class User {
     }
     
     public List<Role> getRoles() {
-        return roles;
+        return Collections.unmodifiableList(roles);
     }
 
     public List<Ticket> getTickets() {
-        return tickets;
+        return Collections.unmodifiableList(tickets);
     }
 
     public List<Note> getNotes() {
-        return notes;
+        return Collections.unmodifiableList(notes);
     }
 
     
     // setters
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
     public void setUsername(String username) {
         this.username = username;
     }
@@ -113,16 +112,42 @@ public class User {
         this.available = available;
     }
 
-    public void setRoles(List<Role> roles) {
-        this.roles = roles;
-    }
+    // metodi
+    public void addRole(Role role) {
+        if (this.roles == null) {
+            this.roles = new ArrayList<>();
+        }
 
-    public void setTickets(List<Ticket> tickets) {
-        this.tickets = tickets;
-    }
-
-    public void setNotes(List<Note> notes) {
-        this.notes = notes;
+        if (role != null && !this.roles.contains(role)) {
+            this.roles.add(role);
+        }
     }
     
+    public void addTicket(Ticket ticket) {
+        if (ticket != null && !this.tickets.contains(ticket)) {
+            this.tickets.add(ticket);
+            ticket.setUser(this); 
+        }
+    }
+    
+    public void addNote(Note note) {
+        if (note != null && !this.notes.contains(note)) {
+            this.notes.add(note);
+            note.setUser(this);
+        }
+    }
+    
+    public void removeTicket(Ticket ticket) {
+        if (ticket != null && !this.tickets.contains(ticket)) {
+            this.tickets.remove(ticket);
+            ticket.setUser(this); 
+        }
+    }
+    
+    public void removeNote(Note note) {
+        if (note != null && !this.notes.contains(note)) {
+            this.notes.remove(note);
+            note.setUser(this);
+        }
+    }   
 }

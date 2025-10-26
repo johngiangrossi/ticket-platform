@@ -1,5 +1,6 @@
 package com.bool.ticketplatform.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -15,6 +16,7 @@ public class Role {
     private Integer id;
 
     @NotBlank(message = "role name is mandatory")
+    @Column(nullable=false, unique=true)
     private String roleName;
 
 
@@ -30,11 +32,6 @@ public class Role {
 
 
     // setters
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
     public void setRoleName(String roleName) {
         this.roleName = roleName;
     }

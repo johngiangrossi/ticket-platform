@@ -1,5 +1,6 @@
 package com.bool.ticketplatform.model;
 
+import java.util.Collections;
 import java.util.List;
 
 import jakarta.persistence.Column;
@@ -23,7 +24,7 @@ public class Category {
     private String name;
 
 
-
+    // fields con relazioni
     @OneToMany(mappedBy = "category")
     private List<Ticket> tickets;
 
@@ -39,22 +40,27 @@ public class Category {
     }
 
     public List<Ticket> getTickets() {
-        return tickets;
+        return Collections.unmodifiableList(tickets);
     }
     
 
     // setters
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
     public void setName(String name) {
         this.name = name;
     }
-
-    public void setTickets(List<Ticket> tickets) {
-        this.tickets = tickets;
-    }
-
     
+
+    // metodi
+    public void addTicket(Ticket ticket) {
+        if (ticket != null && !this.tickets.contains(ticket)) {
+            this.tickets.add(ticket);
+            ticket.setCategory(this);
+        }
+    }
+    public void removeTicket(Ticket ticket) {
+        if (ticket != null) {
+            this.tickets.remove(ticket);
+            ticket.setCategory(null); 
+        }
+    }
 }

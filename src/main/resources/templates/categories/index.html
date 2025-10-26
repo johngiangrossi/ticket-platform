@@ -1,0 +1,108 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.8/css/bootstrap.min.css}">
+
+    <link rel="stylesheet" th:href="@{/css/application.css}">
+    <title>Category</title>
+</head>
+
+
+<body>
+
+    <!-- navbar -->
+    <nav th:replace="~{fragments/navbar :: navbar('Category')}"></nav>
+
+    <!-- main -->
+    <div class="container">
+        <div class="content">
+
+            <!-- messaggi alert per azioni eseguite -->
+            <div>
+                <th:block th:if="${successMessage != null}">
+                    <div class="alert alert-success alert-dismissable fade show" role="alert">
+                        <span th:text="${successMessage}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="close"></button>
+                    </div>
+                </th:block>
+                <th:block th:if="${errorMessage != null}">
+                    <div class="alert alert-danger alert-dismissable fade show" role="alert">
+                        <span th:text="${errorMessage}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="close"></button>
+                    </div>
+                </th:block>
+            </div>
+
+            <!-- form per la creazione di categorie -->
+            <form id="category-form" th:action="@{/categories/index}" method="post" th:object="${categoryObj}">
+                <div class="input-group mb-3">
+
+                    <!-- nome categoria -->
+                    <input type="text" id="name" th:field="*{name}" class="form-control"
+                        placeholder="Inserisci il nome della categoria" th:errorClass="is-invalid">
+
+                    <!-- messaggio di errore -->
+                    <div th:if="${#fields.hasErrors('name')}" class="invalid-feedback">
+                        <ul>
+                            <li th:each="err : ${#fields.errors('name')}" th:text="${err}"></li>
+                        </ul>
+                    </div>
+
+                    <!-- submit -->
+                    <button type="submit" class="btn btn-primary"> Add </button>
+                </div>
+            </form>
+    
+            <!-- lista delle categorie create -->
+            <div class="card w-50">
+
+                <div class="card-header fw-bold">
+                    List of categories with number of tickets associated
+                </div>
+
+                <div class="card-body">
+
+                    <ul class="list-group" th:if="${list != null and list.size() > 0}">
+
+                        <li class="list-group-item d-flex justify-content-between align-items-center"
+                            th:each="item : ${list}">
+                            <div class="d-inline w-50">
+                                <span th:text="${item.name}"></span>
+                            </div>
+
+                            <!-- badge tickets -->
+                            <span class="badge bg-primary bg-pill" th:text="|${item.tickets.size()}|"></span>
+
+                            <!-- form per la cancellazione di una categoria -->
+                            <form th:action="@{|/categories/delete/${item.id}|}" method="post">
+                                <button class="btn btn-danger" type="submit" id="deleteButton"
+                                    onclick="return confirm('Are you sure?')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                        class="bi bi-trash" viewBox="0 0 16 16">
+                                        <path
+                                            d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
+                                        <path
+                                            d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
+                                    </svg>
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+    
+            <div class="alert alert-primary" role="alert" th:unless="${list != null and list.size() > 0}">
+                There are no categories in the database
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script th:src="@{/webjars/bootstrap/5.3.8/js/bootstrap.bundle.min.js}"></script>
+</body>
+
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.8/css/bootstrap.min.css}">
+
+    <link rel="stylesheet" th:href="@{/css/application.css}">
+    <title>Tickets</title>
+</head>
+
+
+<body>
+
+    <!-- navbar -->
+    <nav th:replace="~{fragments/navbar :: navbar('Users')}"></nav>
+
+    <!-- main -->
+    <div class="container">
+        <div class="content">
+
+            <h1 class="text-center py-3">Users</h1>
+
+            <!-- messagio flash azioni -->
+            <div>
+
+                <th:block th:if="${successMessage != null}">
+                    <div class="alert alert-success alert-dismissable fade show" role="alert">
+                        <span th:text="${successMessage}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="close"></button>
+                    </div>
+                </th:block>
+                <th:block th:if="${errorMessage != null}">
+                    <div class="alert alert-danger alert-dismissable fade show" role="alert">
+                        <span th:text="${errorMessage}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="close"></button>
+                    </div>
+                </th:block>
+            </div>
+
+            <hr />
+
+            <!-- form nuovo utente -->
+            <form id="user-form" th:object="${user}" th:action="@{/users/formUser}"
+                    method="post" autocomplete="off">
+
+                <!-- messaggi di errore input -->
+                <div class="alert alert-danger" th:if="${#fields.hasErrors('*')}">
+                    <ul>
+                        <li th:each="err : ${#fields.errors('*')}" th:text="${err}">Input is incorrect</li>
+                    </ul>
+                </div>
+
+                <!-- input nascosti -->
+                <input type="email" name="dummy-email" style="display: none;">
+                <input type="text" name="dummy-username" style="display: none;">
+                <input type="password" name="dummy-password" style="display: none;">
+
+                <div class="row">
+
+                    <!-- dati utente -->
+                    <div class="col-12">
+                        <div class="row gy-4">
+
+                            <div class="col-12">
+
+                                <label class="form-label" for="newUsername">Username</label>
+                                <input id="newUsername" type="text" class="form-control" th:field="*{username}"
+                                    th:errorClass="is-invalid" autocomplete="off" required>
+
+                                <!-- messagi errore input -->
+                                <div th:if="${#fields.hasErrors('username')}" class="invalid-feedback">
+                                    <ul>
+                                        <li th:each="err : ${#fields.errors('username')}" th:text="${err}"></li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="col-12" th:unless="${editMode}">
+
+                                <label class="form-label" for="newPassword">Password</label>
+                                <input id="newPassword" type="password" class="form-control" th:field="*{password}" th:errorClass="is-invalid" autocomplete="off"
+                                    required>
+
+                                <!-- messagi errore input -->
+                                <div th:if="${#fields.hasErrors('password')}" class="invalid-feedback">
+                                    <ul>
+                                        <li th:each="err : ${#fields.errors('password')}" th:text="${err}"></li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="col-12" th:unless="${editMode}">
+
+                                <label class="form-label" for="newEmail">Email</label>
+                                <input id="newEmail" type="email" class="form-control" th:field="*{email}" th:errorClass="is-invalid" required>
+
+                                <!-- messagi errore input -->
+                                <div th:if="${#fields.hasErrors('email')}" class="invalid-feedback">
+                                    <ul>
+                                        <li th:each="err : ${#fields.errors('email')}" th:text="${err}"></li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <input type="hidden" id="available" class="form-control" th:field="*{available}" th:value="true">
+                            
+                            <div class="col-md-12">
+
+                                <label for="userRole">Choose a user role</label>
+                                <select id="userRole" name="rolesId" class="form-select" required>
+                                    <option value="" hidden disabled>Select a role</option>
+                                    <option th:each="rol : ${roleList}" th:value="${rol.id}" th:text="${rol.roleName}"></option>
+                                </select>
+
+                            </div>
+
+                            <!-- bottoni -->
+                            <div class="col-12">
+
+                                <!-- submit -->
+                                <button class="btn btn-primary" type="submit">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                        class="bi bi-check" viewBox="0 0 16 16">
+                                        <path
+                                            d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z" />
+                                    </svg>
+                                    Save
+                                </button>
+
+                                <!-- cancel -->
+                                <a th:href="@{/users/index}" class="btn btn-danger"> Cancel</a>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script th:src="@{/webjars/bootstrap/5.3.8/js/bootstrap.bundle.min.js}"></script>
+
+</body>
+
+</html>

@@ -2,6 +2,8 @@ package com.bool.ticketplatform.model;
 
 import java.time.LocalDateTime;
 
+import org.springframework.format.annotation.DateTimeFormat;
+
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import jakarta.persistence.Column;
@@ -12,7 +14,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 @Entity
 public class Note {
@@ -23,15 +24,14 @@ public class Note {
     private Integer id;
 
     @NotBlank(message = "content is mandatory")
-    @Column(nullable=false, unique=true)
+    @Column(nullable=false)
     private String content;
 
-    @NotNull(message = "date creation is mandatory")
-    @Column(nullable=false, unique=true)
+    @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm")
     private LocalDateTime dateCreation;
 
 
-
+    // fields con relazioni
     @ManyToOne
     @JsonBackReference
     @JoinColumn(name = "ticket_id", nullable = false)
@@ -67,10 +67,6 @@ public class Note {
 
 
     // setters
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
     public void setContent(String content) {
         this.content = content;
     }

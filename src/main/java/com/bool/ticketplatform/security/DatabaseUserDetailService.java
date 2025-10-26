@@ -22,14 +22,13 @@ public class DatabaseUserDetailService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 
+        // cerco per nome utente
         Optional<User> userOpt = userRepo.findByUsername(username);
 
         if (userOpt.isPresent()) {
             return new DatabaseUserDetail(userOpt.get());
         } else {
             throw new UsernameNotFoundException("username not found");
-
         }
-
     }
 }

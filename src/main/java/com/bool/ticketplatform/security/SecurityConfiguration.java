@@ -15,18 +15,15 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfiguration {
 
 
+    // catena dei filtri
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http.authorizeHttpRequests()
 
-            // .requestMatchers("/pizzas/create", "/pizzas/edit/**").hasAuthority("ADMIN")
+            .requestMatchers("/tickets/formTicket", "/tickets/formTicket/**", "/categories/**").hasAuthority("ADMIN")
 
-            // .requestMatchers(HttpMethod.POST, "/pizzas/**").hasAuthority("ADMIN")
-
-            // .requestMatchers("/ingredients", "/ingredients/**").hasAnyAuthority("ADMIN")
-
-            // .requestMatchers("/pizzas", "/pizzas/**").hasAnyAuthority("USER", "ADMIN")
+            .requestMatchers("/tickets", "/tickets/**", "/users/**").hasAnyAuthority("OPERATOR", "ADMIN")
 
             .requestMatchers("/**").permitAll()
 
@@ -41,18 +38,21 @@ public class SecurityConfiguration {
     }
 
 
+    // carico dati utente
     @Bean
     DatabaseUserDetailService userDetailService() {
         return new DatabaseUserDetailService();
     }
     
 
+    // password encoder
     @Bean
     PasswordEncoder passwordEncoder() {
         return PasswordEncoderFactories.createDelegatingPasswordEncoder();
     }
 
-
+    
+    // autentificazione
     @Bean
     DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();

@@ -1,0 +1,361 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.8/css/bootstrap.min.css}">
+
+    <link rel="stylesheet" th:href="@{/css/application.css}">
+
+    <title>Ticket</title>
+</head>
+
+<body>
+
+    <!-- navbar -->
+    <nav th:replace="~{fragments/navbar :: navbar('Tickets')}"></nav>
+
+    <!-- main -->
+    <div class="container-fluid mt-4">
+        <div class="row gy-3">
+    
+            <!-- dashboard utente -->
+            <div class="col-md-3">
+                <div class="card">
+
+                    <!-- titolo dashboard -->
+                    <div class="card-header bg-secondary text-white" th:text="|User ${username}|"></div>
+
+                    <div class="card-body">
+
+                        <!-- nome e ruolo utente -->
+                        <div>
+                            <p>Name: <span sec:authentication="name"></span></p>   
+                            <p>Role: <span sec:authentication="principal.authorities"></span> 
+                        </div>
+
+                        <hr>
+
+                        <!-- azioni utente -->
+                        <div>Actions:</div>
+
+                        <div class="row gy-3">
+                            <div class="col-12">
+
+                                <!-- Form per aggiornare disponibilità -->
+                                <form method="post" th:action="@{/users/updateAvailability}" th:object="${currentUser}">
+                                    <div class="form-check">
+
+                                        <!-- se ha ticket -->
+                                        <div th:if="${hasTickets}">
+                                            Can't change status, have ticket assigned
+                                        </div>
+
+                                        <!-- se non ha ticket -->
+                                        <div th:unless="${hasTickets}">
+                                            <input type="checkbox" name="available" id="isAvailable" th:field="*{available}">
+                                            <label class="form-check-label" for="isAvailable">is available</label>
+                                            <button type="submit" class="btn btn-primary">update</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            
+                            <!-- button aggiunta ticket -->
+                            <div class="col-12" sec:authorize="hasAuthority('ADMIN')">
+
+                                <a class="btn btn-primary" th:href="@{/tickets/formTicket}" sec:authorize="hasAuthority('ADMIN')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle"
+                                        viewBox="0 0 16 16">
+                                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
+                                        <path
+                                            d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
+                                    </svg>
+                                    <span>Add new ticket</span>
+                                </a>
+                            </div>
+
+                            <!-- button aggiunta categoria -->
+                            <div class="col-12" sec:authorize="hasAuthority('ADMIN')">
+                            
+                                <a class="btn btn-primary" th:href="@{/categories/index}" sec:authorize="hasAuthority('ADMIN')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle"
+                                        viewBox="0 0 16 16">
+                                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
+                                        <path
+                                            d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
+                                    </svg>
+                                    <span>Add new category</span>
+                                </a>
+                            </div>
+
+                            <!-- button aggiunta utente -->
+                            <div class="col-12" sec:authorize="hasAuthority('ADMIN')">
+                            
+                                <a class="btn btn-primary" th:href="@{/users/formUser}" sec:authorize="hasAuthority('ADMIN')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle"
+                                        viewBox="0 0 16 16">
+                                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
+                                        <path
+                                            d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
+                                    </svg>
+                                    <span>Add new users</span>
+                                </a>
+                            </div>
+
+                            <!-- ricerca per titolo -->
+                            <div class="col-12">Search by title</div>
+                            <div class="col-12">
+
+                                <div class="d-flex justify-content-between">
+                                
+                                    <!-- form per la ricerca per titolo -->
+                                    <form method="get" th:action="@{/tickets}">
+                                
+                                        <div class="input-group">
+                                
+                                            <input id="searchTitle" name="titleString" type="search" class="form-control" placeholder="Search" aria-label="Search">
+                                            <button class="btn btn-primary">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search"
+                                                    viewBox="0 0 16 16">
+                                                    <path
+                                                        d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- ricerca per categoria -->
+                            <div class="col-12">Search by category</div>
+                            <div class="col-12">
+                            
+                                <div class="d-flex justify-content-between">
+                            
+                                    <!-- form per la ricerca per categoria -->
+                                    <form method="get" th:action="@{/tickets}">
+                            
+                                        <div class="input-group">
+                            
+                                            <input id="searchCategory" name="categoryString" type="search" class="form-control" placeholder="Search"
+                                                aria-label="Search">
+                                            <button class="btn btn-primary">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                                    class="bi bi-search" viewBox="0 0 16 16">
+                                                    <path
+                                                        d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- lista dei ticket -->
+            <div class="col-md-9">
+
+                <div class="row row-gap-3">
+
+                    <!-- ricerca per stato -->
+                    <div class="col-md-4" th:each="status : ${statusList}" sec:authorize="hasAuthority('ADMIN')">
+
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title" th:text="|Ticket ${status.statusType}|"></h5>
+                                <p class="card-text badge bg-primary bg-pill fs-5 d-block" th:text="${status.tickets.size()}"></p>
+                                
+                                <!-- form per la ricerca per stato -->
+                                <div>
+                                    <form method="get" th:action="@{/tickets}">
+                                        <div class="input-group d-flex justify-content-between">
+                                            <div th:text="|filter by ${status.statusType}|"></div>
+
+                                            <input id="searchStatus" name="statusString" type="hidden" aria-label="Search" th:value="${status.statusType}">
+
+                                            <div>
+
+                                                <!-- submit -->
+                                                <button class="btn btn-info rounded-circle" type="submit">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search"
+                                                        viewBox="0 0 16 16">
+                                                        <path
+                                                            d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+                                                    </svg>
+                                                </button>
+    
+                                                <!-- cancel -->
+                                                <a class="btn btn-danger rounded-circle" type="btn" th:href="@{/tickets}">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-circle"
+                                                        viewBox="0 0 16 16">
+                                                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
+                                                        <path
+                                                            d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708" />
+                                                    </svg>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- tabella tickets -->
+                    <div class="col-md-12">
+
+                        <!-- messaggio flash per azioni -->
+                        <div>
+
+                            <th:block th:if="${successMessage != null}">
+                                <div class="alert alert-success alert-dismissable fade show" role="alert">
+                                    <span th:text="${successMessage}"></span>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="close"></button>
+                                </div>
+                            </th:block>
+                            <th:block th:if="${errorMessage != null}">
+                                <div class="alert alert-success alert-dismissable fade show" role="alert">
+                                    <span th:text="${errorMessage}"></span>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="close"></button>
+                                </div>
+                            </th:block>
+                        </div>
+                        
+                        <!-- tabella tickets -->
+                        <div class="card">
+                            <div class="card-header bg-secondary text-white">List Tickets</div>
+                        
+                            <div class="card-body">
+                        
+                                <div class="table-responsive" th:if="${list != null and list.size() > 0}">
+                                    <table class="table table-striped table-hover">
+
+                                        <thead>
+
+                                            <!-- header tabella -->
+                                            <tr>
+                                                <th scope="col">name</th>
+                                                <th scope="col">status</th>
+                                                <th scope="col">date creation</th>
+                                                <th scope="col">date update</th>
+                                                <th scope="col">category</th>
+                                                <th scope="col">user</th>
+                                                <th>Info</th> <!-- Header per il dettaglio -->
+                                                <th sec:authorize="hasAuthority('ADMIN')">Modify</th> <!-- Header per la modifica -->
+                                                <th sec:authorize="hasAuthority('ADMIN')">Delete</th> <!-- Header per la cancellazione -->
+                                            </tr>
+                                        </thead>
+
+                                        <tbody>
+
+                                            <!-- body tabella -->
+                                            <tr class="align-middle" th:each="item : ${list}">
+                            
+                                                <td th:text="${item.title}"></td>
+
+                                                <td id="col-status">
+
+                                                    <!-- form per cambio stato ticket -->
+                                                    <form method="post" th:action="@{/tickets/updateStatus}">
+
+                                                        <input type="hidden" name="ticketId" th:value="${item.id}" />
+
+                                                        <div class="input-group">
+                                                            <select name="statusId" class="form-select">
+
+                                                                <option th:each="stat : ${statusList}" th:value="${stat.id}"
+                                                                    th:text="${stat.statusType}"
+                                                                    th:selected="${item.status != null and stat.id == item.status.id}">
+                                                                </option>
+                                                            </select>
+
+                                                            <button class="btn btn-primary" type="submit">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-save"
+                                                                    viewBox="0 0 16 16">
+                                                                    <path
+                                                                        d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v7.293l2.646-2.647a.5.5 0 0 1 .708.708l-3.5 3.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L7.5 9.293V2a2 2 0 0 1 2-2H14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h2.5a.5.5 0 0 1 0 1z" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </td>
+
+                                                <td class="col-width" th:text="${#temporals.format(item.dateCreation, 'dd-MM-yyyy HH:mm')}"></td>
+                                                <td class="col-width" th:text="${#temporals.format(item.dateUpdate, 'dd-MM-yyyy HH:mm')}"></td>
+                                                
+                                                <td th:text="${item.category.name}"></td>
+                                                <td th:text="${item.user.username}"></td>
+                            
+                                                <!-- colonna per il dettaglio-->
+                                                <td>
+                            
+                                                    <a th:href="@{/tickets/show/{id}(id=${item.id})}" class="btn btn btn-success">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                                            class="bi bi-info-square" viewBox="0 0 16 16">
+                                                            <path
+                                                                d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z" />
+                                                            <path
+                                                                d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0" />
+                                                        </svg>
+                                                    </a>           
+                                                </td>
+                            
+                                                <!-- colonna per la modifica -->
+                                                <td sec:authorize="hasAuthority('ADMIN')">
+                            
+                                                    <a th:href="@{|/tickets/formTicket/${item.id}|}" class="btn btn-primary">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                                            class="bi bi-pencil" viewBox="0 0 16 16">
+                                                            <path
+                                                                d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325" />
+                                                        </svg>
+                                                    </a>
+                                                </td>
+                            
+                                                <!-- colonna per la cancellazione -->
+                                                <td sec:authorize="hasAuthority('ADMIN')">
+                            
+                                                    <form th:action="@{'/tickets/delete/{id}'(id=${item.id})}" method="post">
+                                                        <button class="btn btn-danger" type="submit" id="submitButton"
+                                                            onclick="return confirm('Are you sure?')">
+                            
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                                                class="bi bi-trash" viewBox="0 0 16 16">
+                                                                <path
+                                                                    d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
+                                                                <path
+                                                                    d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
+                                                            </svg>
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                            
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div class="alert alert-primary" role="alert" th:unless="${list != null and list.size() > 0}">
+                                    There are not tickets in database
+                                </div>
+                        
+                            </div>
+                        </div>
+                    </div>
+                </div>            
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script th:src="@{/webjars/bootstrap/5.3.8/js/bootstrap.bundle.min.js}"></script>
+</body>
+
+</html>

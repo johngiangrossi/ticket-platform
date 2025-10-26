@@ -1,7 +1,10 @@
 package com.bool.ticketplatform.model;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+
+import org.springframework.format.annotation.DateTimeFormat;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
@@ -30,31 +33,33 @@ public class Ticket {
 
     private String description;
 
-    @NotBlank(message = "status is mandatory")
-    @Column(nullable=false)
-    private String status;
-
-    @NotNull(message = "date creation is mandatory")
-    @Column(nullable=false)
+    @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm")
     private LocalDateTime dateCreation;
 
+    @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm")
     private LocalDateTime dateUpdate;
 
     
-    
+    // fields con relazioni
     @OneToMany(mappedBy="ticket")
     private List<Note> notes;
     
+    @ManyToOne
+    @JsonBackReference
+    @JoinColumn(name = "status_ticket_id", nullable = false)
+    private StatusTicket status;
     
     @ManyToOne
     @JsonBackReference
     @JoinColumn(name = "category_id", nullable = false)
+    @NotNull(message = "category is mandatory")
     private Category category;
 
   
     @ManyToOne
     @JsonBackReference
     @JoinColumn(name = "user_id", nullable = false)
+    @NotNull(message = "user is mandatory")
     private User user;
     
 
@@ -72,10 +77,6 @@ public class Ticket {
         return description;
     }
 
-    public String getStatus() {
-        return status;
-    }
-
     public LocalDateTime getDateCreation() {
         return dateCreation;
     }
@@ -84,8 +85,12 @@ public class Ticket {
         return dateUpdate;
     }
 
+    public StatusTicket getStatus() {
+        return status;
+    }
+
     public List<Note> getNotes() {
-        return notes;
+        return Collections.unmodifiableList(notes);
     }
     
     public Category getCategory() {
@@ -98,20 +103,12 @@ public class Ticket {
 
 
     // setters
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
     public void setTitle(String title) {
         this.title = title;
     }
 
     public void setDescription(String description) {
         this.description = description;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
     }
 
     public void setDateCreation(LocalDateTime dateCreation) {
@@ -122,10 +119,6 @@ public class Ticket {
         this.dateUpdate = dateUpdate;
     }
 
-    public void setNotes(List<Note> notes) {
-        this.notes = notes;
-    }
-
     public void setCategory(Category category) {
         this.category = category;
     }
@@ -134,4 +127,24 @@ public class Ticket {
         this.user = user;
     }
 
+    public void setStatus(StatusTicket status) {
+        this.status = status;
+    }
+
+
+    // metodi
+    public void addNote(Note note) {
+        if (note != null && !this.notes.contains(note)) {
+            this.notes.add(note);
+            note.setTicket(this); 
+        }
+    }
+
+    // Metodo per rimuovere una nota
+    public void removeNote(Note note) {
+        if (note != null) {
+            this.notes.remove(note);
+            note.setTicket(null); 
+        }
+    }
 }

@@ -1,0 +1,102 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.8/css/bootstrap.min.css}">
+
+    <link rel="stylesheet" th:href="@{/css/application.css}">
+    <title>Note</title>
+</head>
+
+
+<body>
+
+    <!-- navbar -->
+    <nav th:replace="~{fragments/navbar :: navbar('Notes')}"></nav>
+
+    <!-- main -->
+    <div class="container">
+
+        <div class="content">
+
+            <!-- titolo della nota -->
+            <div th:if="${note.ticket != null}">
+                <span class="fw-bold fs-3">Note: </span>
+                <span th:text="${note.ticket.title}"></span>
+            </div>
+            <div th:unless="${note.ticket != null}">New Nota</div>
+            <hr>
+
+            <!-- messaggio flash di errore -->
+            <div>
+                <th:block th:if="${successMessage != null}">
+                    <div class="alert alert-success alert-dismissable fade show" role="alert">
+                        <span th:text="${successMessage}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="close"></button>
+                    </div>
+                </th:block>
+                <th:block th:if="${errorMessage != null}">
+                    <div class="alert alert-danger alert-dismissable fade show" role="alert">
+                        <span th:text="${errorMessage}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="close"></button>
+                    </div>
+                </th:block>
+            </div>
+
+            <!-- form note -->
+            <form id="note-form" th:object="${note}"
+            th:action="${editMode} ? @{/notes/edit/{id}(id=${note.id})} : @{/notes/create}" method="post">
+
+                <!-- input nascosti -->
+                <input type="hidden" th:field="*{ticket}" id="ticket">
+                <input type="hidden" th:field="*{ticket.user}" id="ticket">
+                <input type="hidden" th:field="*{ticket.id}" />
+                
+                <div class="row gy-3">
+
+
+                    <!-- contenuto -->
+                    <div class="col-12">
+                        <label class="form-label fw-bold fs-3" for="content">Content</label>
+
+                        <input id="content" type="text" class="form-control" th:field="*{content}"
+                            th:errorClass="is-invalid">
+
+                        <!-- messaggio errore -->
+                        <div th:if="${#fields.hasErrors('content')}" class="invalid-feedback">
+                            <ul>
+                                <li th:each="err : ${#fields.errors('content')}" th:text="${err}"></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- button -->
+                    <div class="col-12">
+                        
+                        <!-- submit -->
+                        <button class="btn btn-primary" type="submit">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                class="bi bi-check" viewBox="0 0 16 16">
+                                <path
+                                    d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z" />
+                            </svg>
+                            Save
+                        </button>
+
+                        <!-- cancel -->
+                        <a th:href="@{/tickets/show/{id}(id=${note.ticket.id})}" class="btn btn-danger">Cancel</a>
+
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Bootstrap Bundle with Popper -->
+    <script th:src="@{/webjars/bootstrap/5.3.8/js/bootstrap.bundle.min.js}"></script>
+</body>
+
+</html>
