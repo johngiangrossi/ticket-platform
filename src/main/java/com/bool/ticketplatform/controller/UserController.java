@@ -1,6 +1,7 @@
 package com.bool.ticketplatform.controller;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,24 +53,35 @@ public class UserController {
 
     // get per pagina profilo
     @GetMapping("/profile")
-    public String viewProfile(Authentication authentication, Model model) {
+    public String viewProfile(Authentication authentication, Model model, RedirectAttributes redirectAttributes) {
 
-        // cerco utente
-        String username = authentication.getName();
-        Optional<User> userOptional = userRepository.findByUsername(username);
+        try {
+            
+            // cerco utente
+            String username = authentication.getName();
+            Optional<User> userOptional = userRepository.findByUsername(username);
 
-        if (!userOptional.isPresent()) {
+            if (!userOptional.isPresent()) {
+
+                throw new NoSuchElementException("user not found!");
+
+            }
+
+            User currentUser = userOptional.get();
+
+            model.addAttribute("currentUser", currentUser);
+            model.addAttribute("list", ticketRepository.findByUser_Username(username));
+            model.addAttribute("statusList", statusTicketRepository.findAll());
+            model.addAttribute("username", username);
+
+            return "users/profile";
+
+        } catch (NoSuchElementException e) {
+
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
             return "redirect:/login";
+            
         }
-
-        User currentUser = userOptional.get();
-
-        model.addAttribute("currentUser", currentUser);
-        model.addAttribute("list", ticketRepository.findByUser_Username(username));
-        model.addAttribute("statusList", statusTicketRepository.findAll());
-        model.addAttribute("username", username);
-
-        return "users/profile";
     }
 
     
@@ -78,37 +90,46 @@ public class UserController {
     public String updateAvailability(@ModelAttribute("currentUser") User userForm, Authentication authentication,
             Model model, RedirectAttributes redirectAttributes) {
 
-        // cerco utente
-        String username = authentication.getName();
-        Optional<User> userToUpdateOptional = userRepository.findByUsername(username);
+        try {
+    
+            // cerco utente
+            String username = authentication.getName();
+            Optional<User> userToUpdateOptional = userRepository.findByUsername(username);
 
-        if (!userToUpdateOptional.isPresent()) {
+            if (!userToUpdateOptional.isPresent()) {
 
-            redirectAttributes.addFlashAttribute("errorMessage", "ticket not found!");
+                throw new NoSuchElementException("user not found!");
+
+            }
+
+            User userToUpdate = userToUpdateOptional.get();
+
+            // cerco ticket
+            List<Ticket> assignedTickets = ticketRepository.findByUser(userToUpdate);
+
+            if (!assignedTickets.isEmpty() && !userForm.isAvailable()) {
+
+                model.addAttribute("currentUser", userToUpdate);
+                model.addAttribute("hasTickets", true);
+                model.addAttribute("errorMessage", "Can't change status while have ticket assigned");
+                model.addAttribute("list", assignedTickets);
+                model.addAttribute("statusList", statusTicketRepository.findAll());
+                model.addAttribute("username", username);
+
+                return "tickets/index";
+            }
+
+            // salvo disponibilità
+            userToUpdate.setAvailable(userForm.isAvailable());
+            userRepository.save(userToUpdate);
+            return "redirect:/tickets";
+
+        } catch (NoSuchElementException e) {
+
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
             return "redirect:/login";
+
         }
-
-        User userToUpdate = userToUpdateOptional.get();
-
-        // cerco ticket
-        List<Ticket> assignedTickets = ticketRepository.findByUser(userToUpdate);
-
-        if (!assignedTickets.isEmpty() && !userForm.isAvailable()) {
-
-            model.addAttribute("currentUser", userToUpdate);
-            model.addAttribute("hasTickets", true);
-            model.addAttribute("errorMessage", "Can't change status while have ticket assigned");
-            model.addAttribute("list", ticketRepository.findByUser_Username(username));
-            model.addAttribute("statusList", statusTicketRepository.findAll());
-            model.addAttribute("username", username);
-
-            return "tickets/index";
-        }
-
-        // salvo disponibilità
-        userToUpdate.setAvailable(userForm.isAvailable());
-        userRepository.save(userToUpdate);
-        return "redirect:/tickets";
     }
 
     
@@ -142,58 +163,74 @@ public class UserController {
             @RequestParam("rolesId") Integer rolesId,
             RedirectAttributes redirectAttributes, Model model) {
 
-        // cerco utente
-        Optional<User> userOptUsername = userRepository.findByUsername(formUser.getUsername());
-        Optional<User> userOptEmail = userRepository.findByEmail(formUser.getEmail());
+        try {
+            
+            // binding result
+            if (bindingResult.hasErrors()) {
 
-        if (userOptEmail.isPresent() || userOptUsername.isPresent()) {
-            model.addAttribute("errorMessage", "user already exist");
-            model.addAttribute("roleList", roleRepository.findAll());
-            model.addAttribute("editMode", false);
-            model.addAttribute("user", formUser);
-            return "users/formUser";
-        }
-
-        // binding result
-        if (bindingResult.hasErrors()) {
-
-            System.err.println("Validation errors found:");
-            // Itera e stampa tutti gli errori
-            for (ObjectError error : bindingResult.getAllErrors()) {
-                if (error instanceof FieldError) {
-                    FieldError fieldError = (FieldError) error;
-                    System.err.println(
-                            "  - Field: " + fieldError.getField() + ", Message: " + fieldError.getDefaultMessage());
-                } else {
-                    System.err.println("  - Global error: " + error.getDefaultMessage());
+                System.err.println("Validation errors found:");
+                // Itera e stampa tutti gli errori
+                for (ObjectError error : bindingResult.getAllErrors()) {
+                    if (error instanceof FieldError) {
+                        FieldError fieldError = (FieldError) error;
+                        System.err.println(
+                                "  - Field: " + fieldError.getField() + ", Message: " + fieldError.getDefaultMessage());
+                    } else {
+                        System.err.println("  - Global error: " + error.getDefaultMessage());
+                    }
                 }
+
+                model.addAttribute("user", formUser);
+                model.addAttribute("roleList", roleRepository.findAll());
+                model.addAttribute("editMode", false);
+
+                return "users/formUser";
+            }
+            
+            // cerco utente
+            Optional<User> userOptUsername = userRepository.findByUsername(formUser.getUsername());
+            Optional<User> userOptEmail = userRepository.findByEmail(formUser.getEmail());
+
+            if (userOptEmail.isPresent() || userOptUsername.isPresent()) {
+
+                throw new IllegalArgumentException("user already exist");
+
             }
 
-            model.addAttribute("user", formUser);
+            Optional<Role> roleOpt = roleRepository.findById(rolesId);
+            
+            if (roleOpt.isEmpty()) {
+
+                throw new NoSuchElementException("role not found!");
+
+            }
+
+            Role role = roleOpt.get();
+            
+            formUser.addRole(role);
+
+            formUser.setPassword(passwordEncoder.encode(formUser.getPassword()));
+            formUser.setAvailable(true);
+
+            userRepository.save(formUser);
+            
+            redirectAttributes.addFlashAttribute("successMessage", "User created successfully!");
+            return "redirect:/users/index";
+
+        } catch (NoSuchElementException e) {
+
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/users/index";
+
+        } catch (IllegalArgumentException e) {
+
+            model.addAttribute("errorMessage", e.getMessage());
             model.addAttribute("roleList", roleRepository.findAll());
             model.addAttribute("editMode", false);
-
+            model.addAttribute("user", formUser);
             return "users/formUser";
+
         }
-
-        Optional<Role> roleOpt = roleRepository.findById(rolesId);
-        
-        if (roleOpt.isEmpty()) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Role not found!");
-            return "redirect:/users/index";
-        }
-
-        Role role = roleOpt.get();
-        
-        formUser.addRole(role);
-
-        formUser.setPassword(passwordEncoder.encode(formUser.getPassword()));
-        formUser.setAvailable(true);
-
-        userRepository.save(formUser);
-        
-        redirectAttributes.addFlashAttribute("successMessage", "User created successfully!");
-        return "redirect:/users/index";
     }
 
 
@@ -203,29 +240,42 @@ public class UserController {
     @PostMapping("/delete/{id}")
     public String delete(@PathVariable Integer id, RedirectAttributes redirectAttributes) {
 
-        // cerco utente
-        Optional<User> userOpt = userRepository.findById(id);
+        try {
 
-        if (!userOpt.isPresent()) {
+            // cerco utente
+            Optional<User> userOpt = userRepository.findById(id);
 
-            redirectAttributes.addFlashAttribute("successMessage", "ticket not found!");
+            if (!userOpt.isPresent()) {
+
+                throw new NoSuchElementException("user not found!");
+
+            }
+
+            User user = userOpt.get();
+
+            // verifico che non ha ticket
+            if (user.getTickets() != null && !user.getTickets().isEmpty()) {
+
+                throw new IllegalArgumentException("Impossible delete user with ticket assigned!");
+
+            }
+        
+            // cancello utente
+            userRepository.delete(user);
+
+            redirectAttributes.addFlashAttribute("successMessage", "user deleted with success!");
             return "redirect:/users/index";
-        }
+        } catch (NoSuchElementException e) {
 
-        User user = userOpt.get();
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/users/index";
+            
+        } catch(IllegalArgumentException e) {
 
-        // verifico che non ha ticket
-        if (user.getTickets() != null && !user.getTickets().isEmpty()) {
             redirectAttributes.addFlashAttribute("errorMessage",
-                    "Impossible delete user with ticket assigned!");
+                    e.getMessage());
             return "redirect:/users/index";
+
         }
-    
-        // cancello utente
-        userRepository.delete(user);
-
-        redirectAttributes.addFlashAttribute("successMessage", "user deleted with success!");
-        return "redirect:/users/index";
     }
-
 }

@@ -1,6 +1,7 @@
 package com.bool.ticketplatform.controller;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +15,6 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.bool.ticketplatform.model.Category;
@@ -48,18 +48,6 @@ public class CategoryController {
     public String save(@Valid @ModelAttribute("categoryObj") Category category, BindingResult bindingResult,
             RedirectAttributes redirectAttributes, Model model) {
 
-        // cerco categorie
-        Optional<Category> categoryOpt = categoryRepository.findByName(category.getName());
-
-        if (categoryOpt.isPresent()) {
-
-            model.addAttribute("errorMessage", "Category already present!");
-
-            List<Category> list = categoryRepository.findAll();
-            model.addAttribute("list", list);
-            return "categories/index";
-        }
-
         // binding result
         if (bindingResult.hasErrors()) {
 
@@ -81,10 +69,31 @@ public class CategoryController {
 
         }
 
-        // salvo categoria
-        categoryRepository.save(category);
-        redirectAttributes.addFlashAttribute("successMessage", "Category created successfully!");
-        return "redirect:/categories/index";
+        try {
+
+            // cerco categorie
+            Optional<Category> categoryOpt = categoryRepository.findByName(category.getName());
+
+            if (categoryOpt.isPresent()) {
+
+                throw new IllegalArgumentException("category already exist");
+
+            }
+
+            // salvo categoria
+            categoryRepository.save(category);
+            redirectAttributes.addFlashAttribute("successMessage", "Category created successfully!");
+            return "redirect:/categories/index";
+            
+        } catch (IllegalArgumentException e) {
+            
+            model.addAttribute("errorMessage", e.getMessage());
+
+            List<Category> list = categoryRepository.findAll();
+            model.addAttribute("list", list);
+            return "categories/index";
+
+        }
     }
     
 
@@ -92,30 +101,38 @@ public class CategoryController {
     @PostMapping("/delete/{id}")
     public String delete(@PathVariable("id") Integer id, RedirectAttributes redirectAttributes, Model model) {
 
-        // cerco categoria
-        Optional<Category> catOptional = categoryRepository.findById(id);
+        try {
+    
+            // cerco categoria
+            Optional<Category> catOptional = categoryRepository.findById(id);
 
-        if (!catOptional.isPresent()) {
+            if (!catOptional.isPresent()) {
 
-            redirectAttributes.addFlashAttribute("errorMessage",
-                    "category is not found");
+                throw new NoSuchElementException("category is not found");
+                
+            }
+            
+            Category cat = catOptional.get();
+
+            // se non ha ticket non cancello
+            if (!cat.getTickets().isEmpty()) {
+
+                throw new IllegalArgumentException("impossible delete a category with ticket associated");
+
+            }
+
+            // cancello categoria
+            categoryRepository.deleteById(id);
+            redirectAttributes.addFlashAttribute("successMessage", "Category deletes successfully!");
+            
             return "redirect:/categories/index";
-        }
         
-        Category cat = catOptional.get();
+        } catch (NoSuchElementException | IllegalArgumentException e) {
 
-        // se non ha ticket non cancello
-        if (!cat.getTickets().isEmpty()) {
-            redirectAttributes.addFlashAttribute("errorMessage",
-                    "impossible delete a category with ticket associated");
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
             return "redirect:/categories/index";
+                
         }
-
-        // cancello categoria
-        categoryRepository.deleteById(id);
-        redirectAttributes.addFlashAttribute("successMessage", "Category deletes successfully!");
-        
-        return "redirect:/categories/index"; 
     }
 
 }

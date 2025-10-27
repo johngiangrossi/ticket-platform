@@ -2,6 +2,7 @@ package com.bool.ticketplatform.controller;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -96,16 +97,15 @@ public class TicketController {
             }
         } else {
                 
-                if (titleString != null && !titleString.isBlank()) {
-                    result = ticketRepository.findByUser_UsernameAndTitleContainingIgnoreCase(username, titleString);
-                } else if (categoryString != null && !categoryString.isBlank()) {
-                    result = ticketRepository.findByUser_UsernameAndCategory_nameContainingIgnoreCase(username, categoryString);
-                } else if (statusString != null && !statusString.isBlank()) {
-                    result = ticketRepository.findByUser_UsernameAndStatus_statusTypeContainingIgnoreCase(username, statusString);
-                } else {
-                    result = ticketRepository.findByUser_Username(username);
-                }
-
+            if (titleString != null && !titleString.isBlank()) {
+                result = ticketRepository.findByUser_UsernameAndTitleContainingIgnoreCase(username, titleString);
+            } else if (categoryString != null && !categoryString.isBlank()) {
+                result = ticketRepository.findByUser_UsernameAndCategory_nameContainingIgnoreCase(username, categoryString);
+            } else if (statusString != null && !statusString.isBlank()) {
+                result = ticketRepository.findByUser_UsernameAndStatus_statusTypeContainingIgnoreCase(username, statusString);
+            } else {
+                result = ticketRepository.findByUser_Username(username);
+            }
         }
         
         model.addAttribute("currentUser", currentUser);
@@ -164,30 +164,7 @@ public class TicketController {
     public String save(@Valid @ModelAttribute("ticket") Ticket formTicket, BindingResult bindingResult,
             RedirectAttributes redirectAttributes, Model model,
             @RequestParam("category.id") Integer categoryId, @RequestParam("user.id") Integer userId) {
-
-        // cerco per lo stato
-        Optional<StatusTicket> defaultStatusOpt = statusTicketRepository.findById(2);
-        if (!defaultStatusOpt.isPresent()) {
-
-            redirectAttributes.addFlashAttribute("errorMessage", "status ticket not found!");
-            return "tickets/formTicket";
-        }
-
-        // cerco per la categoria
-        Optional<Category> categoryOptional = categoryRepository.findById(categoryId);
-        if (!categoryOptional.isPresent()) {
-
-            redirectAttributes.addFlashAttribute("errorMessage", "category ticket not found!");
-            return "tickets/formTicket";
-        }
-        // cerco per l utente       
-        Optional<User> userOptional = userRepository.findById(userId);
-        if (!userOptional.isPresent()) {
-
-            redirectAttributes.addFlashAttribute("errorMessage", "user ticket not found!");
-            return "tickets/formTicket";
-        }
-        
+      
         // binding result
         if (bindingResult.hasErrors()) {
 
@@ -213,18 +190,47 @@ public class TicketController {
             return "tickets/formTicket";
         }
 
-        // salvo ticket
-        StatusTicket statusTicket = defaultStatusOpt.get();
-        Category category = categoryOptional.get();
-        User user = userOptional.get();
-        formTicket.setCategory(category);
-        formTicket.setUser(user);
-        formTicket.setDateCreation(LocalDateTime.now());
-        formTicket.setStatus(statusTicket);
-        ticketRepository.save(formTicket);
-        redirectAttributes.addFlashAttribute("successMessage", "Ticket create with success!");
+        try {
+            
+            // cerco per lo stato
+            Optional<StatusTicket> defaultStatusOpt = statusTicketRepository.findById(2);
+            if (!defaultStatusOpt.isPresent()) {
+                throw new NoSuchElementException("status ticket not found!");
+            }
+    
+            // cerco per la categoria
+            Optional<Category> categoryOptional = categoryRepository.findById(categoryId);
+            if (!categoryOptional.isPresent()) {
+                throw new NoSuchElementException("category ticket not found!");
+            }
 
-        return "redirect:/tickets";
+            // cerco per l utente       
+            Optional<User> userOptional = userRepository.findById(userId);
+            if (!userOptional.isPresent()) {
+                throw new NoSuchElementException("user ticket not found!");
+            }
+    
+            // salvo ticket
+            StatusTicket statusTicket = defaultStatusOpt.get();
+            Category category = categoryOptional.get();
+            User user = userOptional.get();
+
+            formTicket.setCategory(category);
+            formTicket.setUser(user);
+            formTicket.setDateCreation(LocalDateTime.now());
+            formTicket.setStatus(statusTicket);
+            ticketRepository.save(formTicket);
+
+            redirectAttributes.addFlashAttribute("successMessage", "Ticket create with success!");
+    
+            return "redirect:/tickets";
+
+        } catch (NoSuchElementException e) {
+
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:tickets/formTicket";
+
+        }
     }
 
 
@@ -234,24 +240,34 @@ public class TicketController {
     public String updateTicketStatus(@RequestParam("ticketId") Integer ticketId,
             @RequestParam("statusId") Integer statusId, RedirectAttributes redirectAttributes) {
 
-        // cerco ticket e stato
-        Optional<Ticket> ticketOpt = ticketRepository.findById(ticketId);
-        Optional<StatusTicket> newStatusOpt = statusTicketRepository.findById(statusId);
+        try {
+            
+            // cerco ticket e stato
+            Optional<Ticket> ticketOpt = ticketRepository.findById(ticketId);
+            Optional<StatusTicket> newStatusOpt = statusTicketRepository.findById(statusId);
 
-        if (!ticketOpt.isPresent() && !newStatusOpt.isPresent()) {
+            if (!ticketOpt.isPresent() && !newStatusOpt.isPresent()) {
 
-            redirectAttributes.addFlashAttribute("errorMessage", "impossible update status!");
+                throw new NoSuchElementException("impossible update status!");
+
+            }
+
+            // salvo nuovo stato
+            Ticket ticket = ticketOpt.get();
+            StatusTicket newStatus = newStatusOpt.get();
+
+            ticket.setStatus(newStatus);
+            ticketRepository.save(ticket);
+
             return "redirect:/tickets";
+
+        } catch (NoSuchElementException e) {
+
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/tickets";
+
         }
 
-        // salvo nuovo stato
-        Ticket ticket = ticketOpt.get();
-        StatusTicket newStatus = newStatusOpt.get();
-
-        ticket.setStatus(newStatus);
-        ticketRepository.save(ticket);
-
-        return "redirect:/tickets";
     } 
 
 
@@ -260,24 +276,35 @@ public class TicketController {
     @GetMapping("/formTicket/{id}")
     public String edit(@PathVariable("id") Integer id, Model model, RedirectAttributes redirectAttributes) {
 
-        // cerco ticket
-        Optional<Ticket> optTicket = ticketRepository.findById(id);
+        try {
 
-        if (!optTicket.isPresent()) {
+            // cerco ticket
+            Optional<Ticket> optTicket = ticketRepository.findById(id);
 
-            redirectAttributes.addFlashAttribute("errorMessage", "ticket not found!");
+            if (!optTicket.isPresent()) {
+
+                throw new NoSuchElementException("ticket not found!");
+
+            }
+
+            Ticket ticket = optTicket.get();
+
+            model.addAttribute("ticket", ticket);
+            model.addAttribute("categoriesList", categoryRepository.findAll());
+            model.addAttribute("usersList", userRepository.findAll());
+            model.addAttribute("editMode", true);
+
+            return "tickets/formTicket";
+
+        } catch (NoSuchElementException e) {
+
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
             return "redirect:/tickets";
+
         }
-
-        Ticket ticket = optTicket.get();
-
-        model.addAttribute("ticket", ticket);
-        model.addAttribute("categoriesList", categoryRepository.findAll());
-        model.addAttribute("usersList", userRepository.findAll());
-        model.addAttribute("editMode", true);
-
-        return "tickets/formTicket";
     }
+
+    
 
     // post per modifica ticket
     @PostMapping("/formTicket/{id}")
@@ -309,55 +336,64 @@ public class TicketController {
             return "tickets/formTicket";
         }
 
-        // cerco ticket vecchio
-        Optional<Ticket> oldTicketOptional = ticketRepository.findById(ticketId);
-        if (!oldTicketOptional.isPresent()) {
+        try {
+    
+            // cerco ticket vecchio
+            Optional<Ticket> oldTicketOptional = ticketRepository.findById(ticketId);
+            if (!oldTicketOptional.isPresent()) {
 
-            redirectAttributes.addFlashAttribute("errorMessage", "ticket not found!");
+                throw new NoSuchElementException("ticket not found!");
+
+            }
+
+            // cerco per la categoria
+            Optional<Category> categoryOptional = categoryRepository.findById(categoryId);
+            if (!categoryOptional.isPresent()) {
+
+                throw new NoSuchElementException("category ticket not found!");
+
+            }
+
+            // cerco per l utente       
+            Optional<User> userOptional = userRepository.findById(userId);
+            if (!userOptional.isPresent()) {
+
+                throw new NoSuchElementException("user ticket not found!");
+
+            }
+
+            // cerco status   
+            Optional<StatusTicket> statusTicketOptional = statusTicketRepository.findById(statusId);
+            if (!statusTicketOptional.isPresent()) {
+
+                throw new NoSuchElementException("status ticket not found!");
+
+            }
+
+            // salvo ticket
+            Category category = categoryOptional.get();
+            User user = userOptional.get();
+            StatusTicket statusTicket = statusTicketOptional.get();
+            Ticket oldTicket = oldTicketOptional.get();
+
+            oldTicket.setTitle(formTicket.getTitle());
+            oldTicket.setDescription(formTicket.getDescription());
+            oldTicket.setDateUpdate(LocalDateTime.now());
+            oldTicket.setStatus(statusTicket);
+            oldTicket.setCategory(category);
+            oldTicket.setUser(user);
+
+            ticketRepository.save(oldTicket);
+            redirectAttributes.addFlashAttribute("successMessage", "ticket updated successfully");
+
             return "redirect:/tickets";
+
+        } catch (NoSuchElementException e) {
+            
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/tickets/formTicket/" + ticketId;
+
         }
-
-        // cerco per la categoria
-        Optional<Category> categoryOptional = categoryRepository.findById(categoryId);
-        if (!categoryOptional.isPresent()) {
-
-            redirectAttributes.addFlashAttribute("errorMessage", "category ticket not found!");
-            return "tickets/formTicket";
-        }
-
-        // cerco per l utente       
-        Optional<User> userOptional = userRepository.findById(userId);
-        if (!userOptional.isPresent()) {
-
-            redirectAttributes.addFlashAttribute("errorMessage", "user ticket not found!");
-            return "tickets/formTicket";
-        }
-
-        // cerco status   
-        Optional<StatusTicket> statusTickeOptional = statusTicketRepository.findById(statusId);
-        if (!userOptional.isPresent()) {
-
-            redirectAttributes.addFlashAttribute("errorMessage", "status ticket not found!");
-            return "tickets/formTicket";
-        }
-
-        // salvo ticket
-        Category category = categoryOptional.get();
-        User user = userOptional.get();
-        StatusTicket statusTicket = statusTickeOptional.get();
-        Ticket oldTicket = oldTicketOptional.get();
-
-        oldTicket.setTitle(formTicket.getTitle());
-        oldTicket.setDescription(formTicket.getDescription());
-        oldTicket.setDateUpdate(LocalDateTime.now());
-        oldTicket.setStatus(statusTicket);
-        oldTicket.setCategory(category);
-        oldTicket.setUser(user);
-
-        ticketRepository.save(oldTicket);
-        redirectAttributes.addFlashAttribute("successMessage", "ticket updated successfully");
-
-        return "redirect:/tickets";
     }
 
 
@@ -366,27 +402,36 @@ public class TicketController {
     @PostMapping("/delete/{id}")
     public String delete(@PathVariable("id") Integer id, RedirectAttributes redirectAttributes) {
 
-        // cerco ticket
-        Optional<Ticket> ticketOptional = ticketRepository.findById(id);
+        try {
+            
+            // cerco ticket
+            Optional<Ticket> ticketOptional = ticketRepository.findById(id);
 
-        if (!ticketOptional.isPresent()) {
+            if (!ticketOptional.isPresent()) {
 
-            redirectAttributes.addFlashAttribute("errorMessage", "ticket not found!");
+                throw new NoSuchElementException("ticket not found!");
+                
+            }
+
+            Ticket ticket = ticketOptional.get();
+
+            // ciclo per cancellare tutte le note associate
+            for (Note noteToDelete : ticket.getNotes()) {
+
+                noteRepository.delete(noteToDelete);
+            }
+
+            // cancella ticket
+            ticketRepository.deleteById(id);
+            redirectAttributes.addFlashAttribute("successMessage", "ticket delete with success!");
             return "redirect:/tickets";
+
+        } catch (NoSuchElementException e) {
+            
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/tickets";
+            
         }
-
-        Ticket ticket = ticketOptional.get();
-
-        // ciclo per cancellare tutte le note associate
-        for (Note noteToDelete : ticket.getNotes()) {
-
-            noteRepository.delete(noteToDelete);
-        }
-
-        // cancella ticket
-        ticketRepository.deleteById(id);
-        redirectAttributes.addFlashAttribute("successMessage", "ticket delete with success!");
-        return "redirect:/tickets";
     }
 
     
@@ -394,23 +439,31 @@ public class TicketController {
     @GetMapping("/{id}/notes")
     public String createNoteForm(@PathVariable("id") Integer id, Model model, RedirectAttributes redirectAttributes) {
         
-        // cerco ticket
-        Optional<Ticket> ticketOpt = ticketRepository.findById(id);
-        
-        if (!ticketOpt.isPresent()) {
+        try {
+            
+            // cerco ticket
+            Optional<Ticket> ticketOpt = ticketRepository.findById(id);
+            
+            if (!ticketOpt.isPresent()) {
 
-            redirectAttributes.addFlashAttribute("errorMessage", "ticket not found!");
+                throw new NoSuchElementException("ticket not found!");
+                
+            }
+            
+            Ticket ticket = ticketOpt.get(); 
+
+            Note note = new Note();
+            note.setTicket(ticket);
+            model.addAttribute("note", note);
+            model.addAttribute("editMode", false);
+            
+            return "notes/edit";
+
+        } catch (NoSuchElementException e) {
+
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
             return "redirect:/tickets";
-        }
-        
-        Ticket ticket = ticketOpt.get(); 
 
-        Note note = new Note();
-        note.setTicket(ticket);
-        model.addAttribute("note", note);
-        model.addAttribute("editMode", false);
-        
-        return "notes/edit";
-        
+        }        
     }
 }

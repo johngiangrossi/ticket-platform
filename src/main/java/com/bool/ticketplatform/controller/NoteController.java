@@ -1,6 +1,7 @@
 package com.bool.ticketplatform.controller;
 
 import java.time.LocalDateTime;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +48,7 @@ public class NoteController {
     public String create(@Valid @ModelAttribute("note") Note note, BindingResult bindingResult, Model model,
             RedirectAttributes redirectAttributes) {
         
+        Optional<Ticket> ticketOpt = Optional.empty();
         // binding error
         if (bindingResult.hasErrors()) {
 
@@ -61,77 +63,112 @@ public class NoteController {
                     System.err.println("  - Global error: " + error.getDefaultMessage());
                 }
             }
-            Optional<Ticket> ticketOpt = ticketRepository.findById(note.getTicket().getId());
-        
+            ticketOpt = ticketRepository.findById(note.getTicket().getId());
+
             if (!ticketOpt.isPresent()) {
 
-                redirectAttributes.addFlashAttribute("erroreMessage", "ticket not found");
-                return "redirect:/tickets/show/" + note.getTicket().getId();
+                throw new NoSuchElementException("ticket not found");
+    
             }
             model.addAttribute("ticket", ticketOpt.get());
             model.addAttribute("note", note);
             model.addAttribute("editMode", false);
 
-            return "notes/edit"; 
+            return "notes/edit";
         }
 
-        // cerca ticket
-        Optional<Ticket> ticketOpt = ticketRepository.findById(note.getTicket().getId());
+        try {
+            
+            // cerca ticket
+            ticketOpt = ticketRepository.findById(note.getTicket().getId());
+            if (!ticketOpt.isPresent()) {
 
-        if (!ticketOpt.isPresent()) {
+                throw new NoSuchElementException("ticket not found");
 
-            redirectAttributes.addFlashAttribute("erroreMessage", "ticket not found");
+            }
+            
+            // cerco content uguali 
+            Optional<Note> noteOptional = noteRepository.findByContent(note.getContent());
+            if (noteOptional.isPresent()) {
+
+                throw new IllegalArgumentException("content already exist");
+
+            }
+
+            // cerco utente loggato
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String currentUsername = authentication.getName();
+
+            Optional<User> userOptional = userRepository.findByUsername(currentUsername);
+
+            if (!userOptional.isPresent()) {
+
+                throw new NoSuchElementException("user not found");
+
+            }
+            
+            // salva ticket
+            Ticket ticket = ticketOpt.get();
+            note.setTicket(ticket);
+            note.setUser(userOptional.get());
+            note.setDateCreation(LocalDateTime.now());
+            model.addAttribute("editMode", false);
+            noteRepository.save(note);
+
             return "redirect:/tickets/show/" + note.getTicket().getId();
-        }
 
-        
-        // cerco content uguali 
-        Optional<Note> noteOptional = noteRepository.findByContent(note.getContent());
-        if (noteOptional.isPresent()) {
-            model.addAttribute("errorMessage", "content already exist");
+        } catch (NoSuchElementException e) {
+
+            if (e.getMessage().contains("user not found")) {
+
+                redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+                return "redirect:/login";
+
+            } else {
+                
+                redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+                return "redirect:/tickets";
+
+            }
+
+        } catch (IllegalArgumentException e) {
+
+            model.addAttribute("errorMessage", e.getMessage());
             model.addAttribute("ticket", ticketOpt.get());
             model.addAttribute("note", note);
             model.addAttribute("editMode", false);
-            return "notes/edit"; 
+            return "notes/edit";
+            
         }
-
-
-        // cerco utente loggato
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String currentUsername = authentication.getName();
-
-        Optional<User> userOptional = userRepository.findByUsername(currentUsername);
-
-        if (!userOptional.isPresent()) {
-            return "redirect:/login";
-        }
-        
-        // salva ticket
-        Ticket ticket = ticketOpt.get();
-        note.setTicket(ticket);
-        note.setUser(userOptional.get());
-        note.setDateCreation(LocalDateTime.now());
-        model.addAttribute("editMode", false);
-        noteRepository.save(note);
-
-        return "redirect:/tickets/show/" + note.getTicket().getId();
     }
     
     
     // modifica note
     // get modifica note
     @GetMapping("/edit/{id}")
-    public String edit(@PathVariable("id") Integer id, Model model) {
+    public String edit(@PathVariable("id") Integer id, Model model, RedirectAttributes redirectAttributes) {
 
-        // cerco note
-        Optional<Note> noteOpt = noteRepository.findById(id);
+        try {
+            
+            // cerco note
+            Optional<Note> noteOpt = noteRepository.findById(id);
 
-        if (noteOpt.isPresent()) {
+            if (!noteOpt.isPresent()) {
+
+                throw new NoSuchElementException("note not found");
+            }
+
             model.addAttribute("note", noteOpt.get());
             model.addAttribute("editMode", true);
-        }
 
-        return "notes/edit";
+            return "notes/edit";
+
+        } catch (NoSuchElementException e) {
+            
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/tickets";
+        
+        }
     }
 
     // post modifica note
@@ -158,17 +195,33 @@ public class NoteController {
             return "notes/edit";
         }
 
-        // cerco nota
-        Note oldNote = noteRepository.findById(id).get();
-        
-        // salvo nota nuova
-        oldNote.setTicket(noteForm.getTicket());
-        oldNote.setContent(noteForm.getContent());
-        
-        noteRepository.save(oldNote);
-        redirectAttributes.addFlashAttribute("successMessage", "note updated successfully");
+        try {
+            
+            // cerco nota
+            Optional<Note> oldNoteOpt = noteRepository.findById(id);
+            if (!oldNoteOpt.isPresent()) {
+                
+                throw new NoSuchElementException("note not found");
 
-        return "redirect:/tickets/show/" + oldNote.getTicket().getId();
+            }
+            
+            // salvo nota nuova
+            Note oldNote = oldNoteOpt.get();
+
+            oldNote.setTicket(noteForm.getTicket());
+            oldNote.setContent(noteForm.getContent());
+            
+            noteRepository.save(oldNote);
+            redirectAttributes.addFlashAttribute("successMessage", "note updated successfully");
+
+            return "redirect:/tickets/show/" + oldNote.getTicket().getId();
+
+        } catch (NoSuchElementException e) {
+
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/tickets";
+
+        }
     }
 
 
@@ -177,16 +230,29 @@ public class NoteController {
     @PostMapping("/delete/{id}")
     public String delete(@PathVariable Integer id, RedirectAttributes redirectAttributes) {
         
-        // cerco nota
-        Note note = noteRepository.findById(id).get();
+        try {
+            
+            // cerco nota
+            Optional<Note> noteOpt = noteRepository.findById(id);
+            if (!noteOpt.isPresent()) {
+                
+                throw new NoSuchElementException("note not found");
 
-        // cancello nota
-        Ticket ticket = note.getTicket();
-        noteRepository.delete(note);
+            }
 
-        redirectAttributes.addFlashAttribute("successMessage", "Note delete with success!");
-        return "redirect:/tickets/show/" + ticket.getId();
+            // cancello nota
+            Note note = noteOpt.get();
+            Ticket ticket = note.getTicket();
+            noteRepository.delete(note);
+
+            redirectAttributes.addFlashAttribute("successMessage", "Note delete with success!");
+            return "redirect:/tickets/show/" + ticket.getId();
+
+        } catch (NoSuchElementException e) {
+            
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/tickets";
+            
+        }
     }
-
-
 }

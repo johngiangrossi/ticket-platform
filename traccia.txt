@@ -84,7 +84,7 @@ Altre CRUD di entità
     Durante la creazione di un operatore, tra i campi è prevista la password per la login.
 
 Eccezioni
-Gestire il comportamento della nostra applicazione gestendo anche le eccezioni lanciate!
+    Gestire il comportamento della nostra applicazione gestendo anche le eccezioni lanciate!
 
 Pagine di errore/not found
 Gestire il comportamento delle pagine di errore di base per gli errori emessi dalla nostra applicazione in pagina.
